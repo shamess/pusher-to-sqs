@@ -1,0 +1,18 @@
+{
+  "name": "pusher-to-sqs",
+  "version": "0.0.1",
+  "description": "Send a Pusher queue to SQS",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "websockets",
+    "data",
+    "streaming",
+    "pusher",
+    "sqs"
+  ],
+  "author": "shamess",
+  "license": "public"
+}
