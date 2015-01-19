@@ -12,7 +12,7 @@ order_book = bitstamp.subscribe('diff_order_book');
 order_book.bind(
     'data',
     function (data) {
-        send_to_sqs(data);
+        send_to_sqs(data, 'diff_order_book');
     }
 );
 
@@ -20,12 +20,12 @@ live_trades = bitstamp.subscribe('live_trades');
 live_trades.bind(
     'data',
     function (data) {
-        send_to_sqs(data);
+        send_to_sqs(data, 'live_trades');
     }
 );
 
-send_to_sqs = function (data) {
-    SQS.createQueue({QueueName: 'bitstamp_order_book_data'}, function (error, response) {
+send_to_sqs = function (data, queue_name) {
+    SQS.createQueue({QueueName: 'bitstamp_' + queue_name + '_data'}, function (error, response) {
         if (error) {
             console.log(error);
 
