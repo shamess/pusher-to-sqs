@@ -1,49 +1,47 @@
 var send_to_sqs,
+    config = require('./config'),
     Pusher = require('pusher-client'),
-    bitstamp = new Pusher('de504dc5763aeef9ff52'),
-    order_book,
     AWS = require('aws-sdk'),
     SQS;
 
-AWS.config.update({region: 'eu-west-1'});
+AWS.config.update({region: config.aws_region});
 SQS = new AWS.SQS();
 
-order_book = bitstamp.subscribe('diff_order_book');
-order_book.bind(
-    'data',
-    function (data) {
-        send_to_sqs(data, 'diff_order_book');
-    }
-);
-
-live_trades = bitstamp.subscribe('live_trades');
-live_trades.bind(
-    'data',
-    function (data) {
-        send_to_sqs(data, 'live_trades');
-    }
-);
-
-send_to_sqs = function (data, queue_name) {
-    SQS.createQueue({QueueName: 'bitstamp_' + queue_name + '_data'}, function (error, response) {
-        if (error) {
-            console.log(error);
-
-            return;
-        }
-
-        console.log(data);
-
-        SQS.sendMessage({
-            QueueUrl: response.QueueUrl,
-            MessageBody: JSON.stringify(data)
-        }, function (error, response) {
+send_to_sqs = function (queue_name) {
+    return function (data) {
+        SQS.createQueue({QueueName: 'bitstamp_' + queue_name}, function (error, response) {
             if (error) {
                 console.log(error);
 
                 return;
             }
+
+            SQS.sendMessage({
+                QueueUrl: response.QueueUrl,
+                MessageBody: JSON.stringify(data)
+            }, function (error, response) {
+                if (error) {
+                    console.log(error);
+
+                    return;
+                }
+            });
         });
-    });
+    };
 };
 
+for(var stream_i = 0; stream_i < config.streams.length; stream_i++) {
+    var stream = config.streams[stream_i],
+        pusher_client = new Pusher(stream.pusher_key);
+
+    for(var sub_i = 0; sub_i < stream.subscriptions.length; sub_i++) {
+        var subscription = stream.subscriptions[sub_i];
+
+        pusher_subscription = pusher_client.subscribe(subscription.channel);
+
+        pusher_subscription.bind(
+            subscription.event,
+            send_to_sqs([stream.stream_name, subscription.channel, subscription.event].join('_'))
+        );
+    }
+}
