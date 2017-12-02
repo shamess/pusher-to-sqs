@@ -8,8 +8,9 @@ AWS.config.update({region: config.aws_region});
 SQS = new AWS.SQS();
 
 send_to_sqs = function (queue_name) {
+    process.stdout.write(queue_name + "\n");
     return function (data) {
-        SQS.createQueue({QueueName: 'bitstamp_' + queue_name}, function (error, response) {
+        SQS.createQueue({QueueName: queue_name}, function (error, response) {
             if (error) {
                 console.log(error);
 
@@ -20,6 +21,7 @@ send_to_sqs = function (queue_name) {
                 QueueUrl: response.QueueUrl,
                 MessageBody: JSON.stringify(data)
             }, function (error, response) {
+                process.stdout.write(".");
                 if (error) {
                     console.log(error);
 
@@ -38,7 +40,6 @@ for(var stream_i = 0; stream_i < config.streams.length; stream_i++) {
         var subscription = stream.subscriptions[sub_i];
 
         pusher_subscription = pusher_client.subscribe(subscription.channel);
-
         pusher_subscription.bind(
             subscription.event,
             send_to_sqs([stream.stream_name, subscription.channel, subscription.event].join('_'))
